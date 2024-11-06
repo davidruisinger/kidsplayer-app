@@ -1,50 +1,78 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { Image, StyleSheet, Button } from "react-native";
+import { SpotifyApi } from "@spotify/web-api-ts-sdk";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import {
+  isAvailable,
+  authenticateAsync,
+  togglePlay,
+} from "@/modules/little-spotify";
+import ParallaxScrollView from "@/components/ParallaxScrollView";
+import { ThemedView } from "@/components/ThemedView";
+import { useEffect, useRef } from "react";
 
 export default function HomeScreen() {
+  const spotifySdk = useRef<SpotifyApi>();
+
+  useEffect(() => {
+    const test = isAvailable();
+    console.log({
+      test,
+    });
+  });
+
+  const authenticate = async () => {
+    try {
+      const auth = await authenticateAsync({
+        scopes: [
+          // https://developer.spotify.com/documentation/web-api/concepts/scopes
+          "user-read-playback-state",
+          "user-modify-playback-state",
+          "user-read-currently-playing",
+        ],
+      });
+
+      console.log(auth);
+
+      spotifySdk.current = SpotifyApi.withAccessToken(
+        "c105950d5dcf4b3aba8e1238e1a3a908",
+        {
+          access_token: auth.accessToken,
+          expires_in: auth.expirationDate,
+          refresh_token: auth.refreshToken,
+          token_type: "Bearer",
+          expires: auth.expirationDate,
+        }
+      );
+      console.log({
+        auth,
+      });
+    } catch (e) {
+      console.log({
+        e,
+      });
+    }
+  };
+
+  const playTrack = async () => {
+    spotifySdk.current?.player.startResumePlayback(
+      "",
+      "spotify:album:1Je1IMUlBXcx1Fz0WE7oPT"
+    );
+  };
+
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
       headerImage={
         <Image
-          source={require('@/assets/images/partial-react-logo.png')}
+          source={require("@/assets/images/partial-react-logo.png")}
           style={styles.reactLogo}
         />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
+        <Button title="authenticate" onPress={authenticate} />
+        <Button title="toggle play" onPress={togglePlay} />
       </ThemedView>
     </ParallaxScrollView>
   );
@@ -52,8 +80,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   stepContainer: {
@@ -65,6 +93,6 @@ const styles = StyleSheet.create({
     width: 290,
     bottom: 0,
     left: 0,
-    position: 'absolute',
+    position: "absolute",
   },
 });

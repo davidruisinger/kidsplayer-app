@@ -1,102 +1,100 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Image, Platform } from 'react-native';
+import { useState } from "react";
+import { Button, StyleSheet, TouchableHighlight } from "react-native";
+import { InMemoryCachingStrategy, SpotifyApi } from "@spotify/web-api-ts-sdk";
+import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/ThemedText";
+import { Input } from "@rneui/themed";
+import NfcManager, {NfcTech} from 'react-native-nfc-manager';
+import NfcProxy from "@/services/NfcProxy";
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const api = SpotifyApi.withClientCredentials(
+  "c105950d5dcf4b3aba8e1238e1a3a908",
+  "8396926f62554d46b497136eae0ac2a5", undefined, {
+    cachingStrategy: new InMemoryCachingStrategy()
+  }
+);
+
+interface Item { label: string; uri: string }
 
 export default function TabTwoScreen() {
+  const [query, setQuery] = useState<string>("");
+  const [results, setResults] = useState<Item[]>();
+
+  const search = async () => {
+    try {
+      const items = await api.search(query, ["album"]);
+      
+      setResults(
+        items.albums.items.map((item) => ({
+          label: item.name,
+          uri: item.uri,
+        }))
+      );
+    }
+    catch(e) {
+      console.error("Error fetching search results", e);
+    }
+  };
+
+  const storeToCard = async (item: Item) => {
+    console.log("Store to card");
+
+
+  };
+
+  const readCard = async () => {
+    try {
+      const enabled = await NfcProxy.isEnabled();
+      console.log('NFC enabled', enabled);
+      
+      const tag = await NfcProxy.readTag()
+      console.log('Tag found', tag);
+      
+      // // register for the NFC tag with NDEF in it
+      await NfcManager.requestTechnology(NfcTech.Ndef);
+      // // the resolved tag object will contain `ndefMessage` property
+      // const tag = await NfcManager.getTag();
+      // console.warn('Tag found', tag);
+    } catch (ex) {
+      console.warn('Oops!', ex);
+    } finally {
+      // stop the nfc scanning
+      NfcManager.cancelTechnologyRequest();
+    }
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText> library
-          to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <ThemedView style={styles.container}>
+      <Input style={styles.input} onChangeText={setQuery} onSubmitEditing={search} />
+
+      <Button title="read card" onPress={readCard} />
+
+
+      {results?.map((result) => (
+        <TouchableHighlight onPress={() => storeToCard(result)} key={result.uri}>
+          <ThemedView style={styles.item} key={result.uri}>
+            <ThemedText>{result.label}</ThemedText>
+          </ThemedView>
+        </TouchableHighlight>
+      ))}
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  input: {
+    color: "white",
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  item: {
+    padding: 10,
+    margin: 5,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  container: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "stretch",
+    justifyContent: "flex-start",
+    paddingTop: 100,
   },
 });

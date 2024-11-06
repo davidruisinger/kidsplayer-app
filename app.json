@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "little-spotify",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -13,13 +13,15 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.flavordaaave.little-spotify"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.flavordaaave.littlespotify"
     },
     "web": {
       "bundler": "metro",
@@ -27,7 +29,16 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "react-native-nfc-manager",
+      [
+        "./modules/little-spotify/app.plugin.js",
+        {
+          "clientID": "c105950d5dcf4b3aba8e1238e1a3a908",
+          "scheme": "little-spotify",
+          "host": "spotify-auth"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
