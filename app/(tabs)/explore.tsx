@@ -4,17 +4,21 @@ import { InMemoryCachingStrategy, SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Input } from "@rneui/themed";
-import NfcManager, {NfcTech} from 'react-native-nfc-manager';
-import NfcProxy from "@/services/NfcProxy";
+import NfcManager, { NfcTech, Ndef } from "react-native-nfc-manager";
 
 const api = SpotifyApi.withClientCredentials(
   "c105950d5dcf4b3aba8e1238e1a3a908",
-  "8396926f62554d46b497136eae0ac2a5", undefined, {
-    cachingStrategy: new InMemoryCachingStrategy()
+  "8396926f62554d46b497136eae0ac2a5",
+  undefined,
+  {
+    cachingStrategy: new InMemoryCachingStrategy(),
   }
 );
 
-interface Item { label: string; uri: string }
+interface Item {
+  label: string;
+  uri: string;
+}
 
 export default function TabTwoScreen() {
   const [query, setQuery] = useState<string>("");
@@ -23,55 +27,56 @@ export default function TabTwoScreen() {
   const search = async () => {
     try {
       const items = await api.search(query, ["album"]);
-      
+
       setResults(
         items.albums.items.map((item) => ({
           label: item.name,
           uri: item.uri,
         }))
       );
-    }
-    catch(e) {
+    } catch (e) {
       console.error("Error fetching search results", e);
     }
   };
 
-  const storeToCard = async (item: Item) => {
-    console.log("Store to card");
+  const writeCard = async (value: string) => {
+    let result = false;
 
-
-  };
-
-  const readCard = async () => {
     try {
-      const enabled = await NfcProxy.isEnabled();
-      console.log('NFC enabled', enabled);
-      
-      const tag = await NfcProxy.readTag()
-      console.log('Tag found', tag);
-      
-      // // register for the NFC tag with NDEF in it
+      // STEP 1
       await NfcManager.requestTechnology(NfcTech.Ndef);
-      // // the resolved tag object will contain `ndefMessage` property
-      // const tag = await NfcManager.getTag();
-      // console.warn('Tag found', tag);
+
+      const bytes = Ndef.encodeMessage([Ndef.textRecord(value)]);
+
+      if (bytes) {
+        await NfcManager.ndefHandler // STEP 2
+          .writeNdefMessage(bytes); // STEP 3
+        result = true;
+      }
     } catch (ex) {
-      console.warn('Oops!', ex);
+      console.warn(ex);
     } finally {
-      // stop the nfc scanning
+      // STEP 4
       NfcManager.cancelTechnologyRequest();
     }
-  }
+
+    console.log(result);
+    return result;
+  };
 
   return (
     <ThemedView style={styles.container}>
-      <Input style={styles.input} onChangeText={setQuery} onSubmitEditing={search} />
-
-      <Button title="read card" onPress={readCard} />
-
+      <Input
+        style={styles.input}
+        onChangeText={setQuery}
+        onSubmitEditing={search}
+      />
 
       {results?.map((result) => (
-        <TouchableHighlight onPress={() => storeToCard(result)} key={result.uri}>
+        <TouchableHighlight
+          onPress={() => writeCard(result.uri)}
+          key={result.uri}
+        >
           <ThemedView style={styles.item} key={result.uri}>
             <ThemedText>{result.label}</ThemedText>
           </ThemedView>
