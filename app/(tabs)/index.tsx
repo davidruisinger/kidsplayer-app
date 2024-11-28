@@ -14,10 +14,9 @@ export default function HomeScreen() {
   const spotifySdk = useRef<SpotifyApi>();
 
   useEffect(() => {
-    const test = isAvailable();
-    console.log({
-      test,
-    });
+    if (!isAvailable()) {
+      console.error("not available");
+    }
   });
 
   const authenticate = async () => {
